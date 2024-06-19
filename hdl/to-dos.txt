@@ -1,0 +1,4 @@
+    - fully connected topology
+    - can handle inputs from all directions
+    - establish simple handshaking protocol
+    - able to send packets to schedule
