@@ -4,13 +4,14 @@ module scheduler #(
     parameter PKT_SIZE = 32
 ) 
 (
-    input logic clk,
-    input logic tick,
-    input logic [PKT_SIZE-1:0] router_packet,
-    input logic router_packet_recieve,
-    input logic dropped_c2r,
+    input logic clk,    //local
+    input logic tick,   //global
+    input logic [PKT_SIZE-1:0] router_packet, //r2s
+    input logic router_packet_recieve,  //r2s
+    input logic dropped_c2r,    //c2r
 
-    output [(PKT_SIZE - GRANULARITY) - 1:0] send_to_controller
+    output [(PKT_SIZE - GRANULARITY) - 1:0] send_to_controller, //r2s
+    output logic send_to_controller_flag
 );
 
 localparam n_count_clog2 = $clog2(N_COUNT);
@@ -28,6 +29,7 @@ logic r_full[GRANULARITY];
 logic r_empty[GRANULARITY];
 
 logic [7:0] inst_counter;
+logic send_next;
 
 /*
 Edit History: 
@@ -53,6 +55,7 @@ Port meanings:
 
     outputs: 
     send_to_controller -> packet that is being sent to controller
+    send_to_controller_flag -> flag to let controller know that we are sending it a packet
 
 localparam meanings: 
     n_count_clog2 -> ceil(log2(N_COUNT)) -> ceiling of log base 2 of the number of neurons
@@ -66,37 +69,60 @@ internal signal meanings:
     r_stc_out -> unpacked array for full signal for rotating fifos
     r_empty -> unpacked array for empty signal for rotating fifos
     inst_counter -> counter for the number of clock cycles that an instruction should take, once it reaches zero the next packet is sent to the controller
+    send_next -> signal to send the next packet to the controller, triggered by either a dropped packet or the instruction counter reaching zero
 
 instantiated modules: 
     r_fifo -> the rotating fifos for the "scheduling"
 */
 
-// probably not completely correct at the moment, will fix soon I swear
 generate : make_fifos   
     for ( genvar i = 0; i < GRANULARITY; i++ ) begin
-        fifo r_fifo[i] #(PKT_SIZE, N_COUNT)
-                        (.clk(clk), .in(r_in[i]), .wr_en(r_wr_en[i]), .rd_en(r_rd_en[i]), .full(r_full[i]), .empty(r_empty[i]), .out(r_stc_out[i]));
+        fifo r_fifo[i] #(PKT_SIZE, N_COUNT) (.clk(clk), .in(r_in[i]), .wr_en(r_wr_en[i]), .rd_en(r_rd_en[i]), .full(r_full[i]), .empty(r_empty[i]), .out(r_stc_out[i]));
     end
 endgenerate
+
+
+//AOI2?    
+assign send_next = (dropped_c2r || (inst_counter == '0)) && ~(r_empty[tick_ptr]);    
 
 always_ff @( posedge tick ) begin : update_tick
     tick_ptr <= tick_ptr + 1'b1;
 end
 
-always_ff @( posedge clk ) begin : update_rotated_fifo
-    //update our read pointers here
+always_ff @( posedge clk ) begin : let_values_in
+    for(i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
+        r_wr_en[i] <= 1'b0;
+    end
+    
+    if(router_packet_recieve) begin
+        r_in[router_packet[PKT_SIZE-1 : (PKT_SIZE - GRANULARITY) - 1]] <= router_packet
+        r_wr_en[router_packet[PKT_SIZE-1 : (PKT_SIZE - GRANULARITY) - 1]] <= 1'b1;
+    end
 end
 
-/* send our packet (smaller?) to the controller */ 
-always_ff @( posedge clk ) begin : to_controller
+always_ff @( posedge clk ) begin : update_rotated_fifo_rd_en
+    for(i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
+        r_rd_en[i] <= 1'b0;
+    end
+
     if(send_next) begin
-        rd_en <= 1'b1;
+        r_rd_en[tick_ptr] <= 1'b1;
+    end
+end
+
+always_ff @( posedge clk ) begin : to_controller_update_counter
+    if(send_next) begin
         send_to_controller <= r_stc_out[tick_ptr][(PKT_SIZE - GRANULARITY) - 1:0];
+        inst_counter <= r_stc_out[tick_ptr][7:0] //eventually parameterize?
+        send_to_controller_flag <= 1'b1;
     end 
     else begin
-        rd_en <= 1'b0;
         send_to_controller <= '0;
+        inst_counter <= inst_counter - 1'b1;
+        send_to_controller_flag <= 1'b0;
     end
+
+
 end
 
 
