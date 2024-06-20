@@ -20,6 +20,13 @@ logic [PTR_WIDTH : 0] rd_ptr;
 logic [WIDTH - 1 : 0] buf [DEPTH];
 
 /*
+Edit History: 
+- 6/19/2024 V - make initial
+
+Notes: 
+- basically copy pasted from 411 mp_ooo
+- no transparent read 
+
 Paramter meanings: 
     WIDTH -> how large the inputs and outputs of the fifo are in bits
     DEPTH -> how deep the fifo is -> number of slots for data in the fifo -> DEPTH = 8 means only 8 items can be stored at a time
