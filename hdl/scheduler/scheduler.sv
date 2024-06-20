@@ -90,18 +90,18 @@ always_ff @( posedge tick ) begin : update_tick
 end
 
 always_ff @( posedge clk ) begin : let_values_in
-    for(i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
+    for(genvar i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
         r_wr_en[i] <= 1'b0;
     end
-    
+
     if(router_packet_recieve) begin
-        r_in[router_packet[PKT_SIZE-1 : (PKT_SIZE - GRANULARITY) - 1]] <= router_packet
-        r_wr_en[router_packet[PKT_SIZE-1 : (PKT_SIZE - GRANULARITY) - 1]] <= 1'b1;
+        r_in[router_packet[PKT_SIZE-1 : (PKT_SIZE - GRANULARITY)]] <= router_packet;
+        r_wr_en[router_packet[PKT_SIZE-1 : (PKT_SIZE - GRANULARITY)]] <= 1'b1;
     end
 end
 
 always_ff @( posedge clk ) begin : update_rotated_fifo_rd_en
-    for(i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
+    for(genvar i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
         r_rd_en[i] <= 1'b0;
     end
 
@@ -113,7 +113,7 @@ end
 always_ff @( posedge clk ) begin : to_controller_update_counter
     if(send_next) begin
         send_to_controller <= r_stc_out[tick_ptr][(PKT_SIZE - GRANULARITY) - 1:0];
-        inst_counter <= r_stc_out[tick_ptr][7:0] //eventually parameterize?
+        inst_counter <= r_stc_out[tick_ptr][7:0]; //eventually parameterize?
         send_to_controller_flag <= 1'b1;
     end 
     else begin
