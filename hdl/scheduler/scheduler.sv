@@ -90,9 +90,11 @@ always_ff @( posedge tick ) begin : update_tick
 end
 
 always_ff @( posedge clk ) begin : let_values_in
-    for(genvar i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
-        r_wr_en[i] <= 1'b0;
-    end
+    generate 
+        for(genvar i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
+            r_wr_en[i] <= 1'b0;
+        end
+    endgenerate
 
     if(router_packet_recieve) begin
         r_in[router_packet[PKT_SIZE-1 : (PKT_SIZE - GRANULARITY)]] <= router_packet;
@@ -101,9 +103,11 @@ always_ff @( posedge clk ) begin : let_values_in
 end
 
 always_ff @( posedge clk ) begin : update_rotated_fifo_rd_en
-    for(genvar i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
-        r_rd_en[i] <= 1'b0;
-    end
+    generate 
+        for (genvar i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
+            r_rd_en[i] <= 1'b0;
+        end
+    endgenerate
 
     if(send_next) begin
         r_rd_en[tick_ptr] <= 1'b1;
