@@ -3,6 +3,7 @@ module fifo #(
     parameter DEPTH = 8
 ) (
     input logic clk, 
+    input logic rst,
     input logic [WIDTH - 1 : 0] in,
     input logic wr_en,
     input logic rd_en, 
@@ -14,10 +15,11 @@ module fifo #(
 
 localparam PTR_WIDTH = unsigned'( $clog2(DEPTH) );
 
+logic [WIDTH-1:0] buffer [DEPTH];
+
 logic [PTR_WIDTH : 0] wr_ptr;
 logic [PTR_WIDTH : 0] rd_ptr;
 
-logic [WIDTH - 1 : 0] buf [DEPTH];
 
 /*
 Edit History: 
@@ -83,13 +85,13 @@ end
 
 always_ff @( posedge clk ) begin : write
     if(wr_en && !full) begin
-        buf[wr_ptr[PTR_WIDTH-1:0]] <= in;
+        buffer[wr_ptr[PTR_WIDTH-1:0]] <= in;
     end
 end
 
 always_comb begin : read
     if(rd_en && !empty) begin
-        out = buf[rd_ptr];
+        out = buffer[rd_ptr];
     end
     else begin
         out = '0;   //don't think verilator supports x's so changed to '0

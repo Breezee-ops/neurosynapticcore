@@ -10,7 +10,7 @@ module scheduler #(
     input logic router_packet_recieve,  //r2s
     input logic dropped_c2r,    //c2r
 
-    output [(PKT_SIZE - GRANULARITY) - 1:0] send_to_controller, //r2s
+    output logic [(PKT_SIZE - GRANULARITY) - 1:0] send_to_controller, //r2s
     output logic send_to_controller_flag
 );
 
@@ -75,9 +75,9 @@ instantiated modules:
     r_fifo -> the rotating fifos for the "scheduling"
 */
 
-generate : make_fifos   
+generate  
     for ( genvar i = 0; i < GRANULARITY; i++ ) begin
-        fifo r_fifo[i] #(PKT_SIZE, N_COUNT) (.clk(clk), .in(r_in[i]), .wr_en(r_wr_en[i]), .rd_en(r_rd_en[i]), .full(r_full[i]), .empty(r_empty[i]), .out(r_stc_out[i]));
+        fifo #(.WIDTH(PKT_SIZE), .DEPTH(N_COUNT)) r_fifo (.clk(clk), .rst(1'b0), .in(r_in[i]), .wr_en(r_wr_en[i]), .rd_en(r_rd_en[i]), .full(r_full[i]), .empty(r_empty[i]), .out(r_stc_out[i]));
     end
 endgenerate
 
@@ -90,11 +90,9 @@ always_ff @( posedge tick ) begin : update_tick
 end
 
 always_ff @( posedge clk ) begin : let_values_in
-    generate 
-        for(genvar i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
-            r_wr_en[i] <= 1'b0;
-        end
-    endgenerate
+    for (int i = 0; i < GRANULARITY; i++) begin
+        r_wr_en[i] <= 1'b0;
+    end
 
     if(router_packet_recieve) begin
         r_in[router_packet[PKT_SIZE-1 : (PKT_SIZE - GRANULARITY)]] <= router_packet;
@@ -103,11 +101,9 @@ always_ff @( posedge clk ) begin : let_values_in
 end
 
 always_ff @( posedge clk ) begin : update_rotated_fifo_rd_en
-    generate 
-        for (genvar i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
-            r_rd_en[i] <= 1'b0;
-        end
-    endgenerate
+    for (int i = 0; i < GRANULARITY; i++) begin //should unroll? pls define default values pls
+        r_rd_en[i] <= 1'b0;
+    end
 
     if(send_next) begin
         r_rd_en[tick_ptr] <= 1'b1;
@@ -125,10 +121,7 @@ always_ff @( posedge clk ) begin : to_controller_update_counter
         inst_counter <= inst_counter - 1'b1;
         send_to_controller_flag <= 1'b0;
     end
-
-
 end
-
 
     
 endmodule
