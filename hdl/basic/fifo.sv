@@ -36,6 +36,7 @@ Paramter meanings:
 Port meanings: 
     inputs:
     clk -> local clk
+    rst -> reset pin
     in -> input to the fifo
     wr_en -> write enable -> data can only enter the fifo if this signal is enabled
     rd_en -> read enable -> data can only exit the fifo is this signal is enabled
