@@ -15,7 +15,7 @@ module router(
     logic [1:0]   direction_route;
     logic [33:0]  packet_to_send;
 
-    always_comb begin
+    always_comb begin : recieve_incoming_packet
         packet_to_send = '0;
         if(recieve_packet_east) begin
             packet_to_send = recieve_packet_east;
@@ -25,11 +25,11 @@ module router(
          end
     end
 
-    always_comb begin
+    always_comb begin : route_incoming_packet
         send_packet_east = '0;
         send_packet_west = '0;
         send_scheduler = '0;
-        
+
         if ((direction_route) == core_id) send_scheduler = packet_to_send;
         else if (direction_route > core_id) send_packet_east = packet_to_send;
         else  send_packet_west = packet_to_send;
