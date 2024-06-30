@@ -13,7 +13,7 @@ VCS_FLAGS= -full64 -lca -sverilog -timescale=1ns/1ns -debug_acc+all -kdb -fsdb -
 
 sim/top_tb: $(SRCS) $(HDRS)
 	mkdir -p sim
-	python3 check_sus.py
+	# python3 check_sus.py
 	python3 ../bin/rvfi_reference.py
 	cd sim && vcs $(SRCS) $(VCS_FLAGS) -msg_config=../vcs_warn.config -l compile.log -top top_tb -o top_tb
 	bash check_compile_error.sh

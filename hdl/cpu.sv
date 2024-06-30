@@ -18,19 +18,19 @@ assign bmem_write = '0;
 
 logic [33:0] router_core_00_east_connection;
 logic [33:0] router_core_00_west_connection;
-logic [31:0] core_00_scheduler_packet;
+logic [33:0] core_00_scheduler_packet;
 
 logic [33:0] router_core_01_east_connection;
 logic [33:0] router_core_01_west_connection;
-logic [31:0] core_01_scheduler_packet;
+logic [33:0] core_01_scheduler_packet;
 
 logic [33:0] router_core_10_east_connection;
 logic [33:0] router_core_10_west_connection;
-logic [31:0] core_10_scheduler_packet;
+logic [33:0] core_10_scheduler_packet;
 
 logic [33:0] router_core_11_east_connection;
 logic [33:0] router_core_11_west_connection;
-logic [31:0] core_11_scheduler_packet;
+logic [33:0] core_11_scheduler_packet;
 
 router core_00(
     .core_id(2'b00),

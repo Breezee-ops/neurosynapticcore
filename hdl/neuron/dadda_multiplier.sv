@@ -1,5 +1,5 @@
 module dadda_multiplier
-import rv32i_types::*;
+// import rv32i_types::*;
 (
     input logic clk,
     input logic rst,
@@ -77,7 +77,7 @@ enum int unsigned {s_idle, s_comp, s_done_1, s_done_2, s_done_3, s_done_4, s_don
             default: begin end
         endcase
     end
-    
+
     state <= next_state;
     product1 <= p;
     product2 <= product1;
@@ -93,10 +93,6 @@ enum int unsigned {s_idle, s_comp, s_done_1, s_done_2, s_done_3, s_done_4, s_don
 end
 
 always_comb begin
-    rob_id_reg = '0;
-    rs1_reg = '0;
-    rs2_reg = '0;
-    order_reg = '0;
     mul_done = '0;
     multiplier_ready = '0;
     multiplication_done = '0;
@@ -129,7 +125,7 @@ always_comb begin
     s_done_9: next_state = s_done_10;
     s_done_10: next_state = s_finally_done;
     default begin end
-    
+
     endcase
 end
 
