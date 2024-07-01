@@ -1,15 +1,16 @@
 import data_types::*;
-
-module
-#(
-    
-)
-    neuron_controller
+module neuron_controller
 (
     input logic clk,
+    input logic reset,
     input logic tick,
+
+    // information packet from scheduler
     input logic [PKT_SIZE - 1:0] from_sched,
+    // something to compute
     input logic flag_from_sched,
+    // input current. More details to resolve this...
+    input logic [V_PRECISION-1:0] I,
 
     // stuff out to SRAM
     // rough idea is that we store the weights in SRAM
@@ -42,27 +43,35 @@ module
     // than tick...not sure how else otherwise to do this purely combinationally with multiple
     // reads/writes needed to SRAM
     logic exec;
+    logic [SRAM_ADDR_SIZE-1:0] sram_addr_n;
+
+    
+    always_comb begin
+        sram_addr_n = sram_addr;
+        if(sram_addr == 8'd255)
+            sram_addr_n = '0;
+        else if(exec && sram_resp)
+            sram_addr_n = sram_addr + 1'b1;
+    end
+
     always_ff @(posedge clk) begin
+        sram_addr <= sram_addr_n;
         if(reset) begin
             sram_addr <= '0;
             exec <= '0;
-        end else if(sram_addr == 'd255) begin
-            sram_addr <= '0;
+        end else if(sram_addr == 8'd255) begin
             exec <= '0;
         end else if(flag_from_sched) begin
             exec <= '1;
-        end else if(exec && sram_resp) begin
-            sram_addr <= sram_addr + 'd1;
         end
     end
+
     assign curr_neuron = sram_addr;
     always_comb begin
         // combinational iteration
         neuron_clk = '0;
-        for(int i = 0; i < N_COUNT; i++) begin
-            if(sram_rd.connections[i] && flag_from_sched) begin
-                neuron_clk[i] = '1;
-            end
+        if(sram_rd.connections[curr_neuron]) begin
+            neuron_clk[curr_neuron] = '1;
         end
         // update potential per LIF equation
         // I have no idea how to get our input current at this point in time
@@ -70,6 +79,9 @@ module
             new_membrane_pot = I + sram_rd.A - sram_rd.B * sram_rd.membrane_potential;
         else
             new_membrane_pot = sram_rd.C;
+
+        to_nblock = sram_rd;
+        
     end
     
 endmodule   :   neuron_controller

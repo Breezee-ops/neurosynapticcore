@@ -5,77 +5,64 @@ module top_tb;
     timeunit 1ps;
     timeprecision 1ps;
 
-    int clock_half_period_ps = getenv("ECE411_CLOCK_PERIOD_PS").atoi() / 2;
+    int clock_half_period_ps = 5;
 
     bit clk;
     always #(clock_half_period_ps) clk = ~clk;
 
-    bit rst;
+    bit reset;
+    logic tick;
+    logic [PKT_SIZE-1:0] from_sched;
+    logic flag_from_sched;
+    logic [V_PRECISION-1:0] I;
+    logic sram_resp;
+    logic [SRAM_ADDR_SIZE-1:0] sram_addr;
+    sram_data_t sram_rd;
+    logic [SRAM_ADDR_SIZE-1:0] curr_neuron;
+    sram_data_t to_nblock;
+    logic [N_COUNT-1:0] neuron_clk;
+    logic [V_PRECISION-1:0] new_membrane_pot;
+    logic dropped_packet;
 
     int timeout = 10000000; // in cycles, change according to your needs
 
-    // Explicit dual port connections when caches are not integrated into design yet (Before CP3)
-    // mem_itf mem_itf_i(.*);
-    // mem_itf mem_itf_d(.*);
-    // magic_dual_port mem(.itf_i(mem_itf_i), .itf_d(mem_itf_d));
-
-    // Single memory port connection when caches are integrated into design (CP3 and after)
-    banked_mem_itf bmem_itf(.*);
-    banked_memory banked_memory(.itf(bmem_itf));
-
-    mon_itf mon_itf(.*);
-    monitor monitor(.itf(mon_itf));
-
-    cpu dut(
-        .clk            (clk),
-        .rst            (rst),
-
-        .bmem_addr(bmem_itf.addr),
-        .bmem_read(bmem_itf.read),
-        .bmem_write(bmem_itf.write),
-        .bmem_wdata(bmem_itf.wdata),
-        .bmem_ready(bmem_itf.ready),
-        .bmem_raddr(bmem_itf.raddr),
-        .bmem_rdata(bmem_itf.rdata),
-        .bmem_rvalid(bmem_itf.rvalid)
-    );
-
-    `include "../../hvl/rvfi_reference.svh"
+    neuron_controller dut(.*);
 
     initial begin
         $fsdbDumpfile("dump.fsdb");
         $fsdbDumpvars(0, "+all");
-        rst = 1'b1;
+        reset = 1'b1;
+        tick = 1'b0;
+        sram_resp = 1'b0;
+        I = '0;
+        from_sched = '0;
+        flag_from_sched = '0;
+        sram_rd = '0;
+
         repeat (2) @(posedge clk);
-        rst <= 1'b0;
+        reset <= 1'b0;
+
+        repeat (1) @(posedge clk);
+        flag_from_sched = '1;
+        
+        repeat (1) @(posedge clk);
+        flag_from_sched = '0;
+        sram_resp = '1;
+        sram_rd.connections = 256'd8;
+        I = 4'd2;
+        sram_rd.A = 4'd1;
+        sram_rd.B = 4'd1;
+        sram_rd.C = 4'd1;
+        sram_rd.vthresh = 4'd3;
+        sram_rd.membrane_potential = 4'd5;
+
+        repeat (256) @(posedge clk);
+
+        repeat (50) @(posedge clk);
+        $finish;
     end
 
     always @(posedge clk) begin
-        for (int unsigned i=0; i < 8; ++i) begin
-            if (mon_itf.halt[i]) begin
-                $finish;
-            end
-        end
-        if (timeout == 0) begin
-            $error("TB Error: Timed out");
-            $finish;
-        end
-        if (mon_itf.error != 0) begin
-            repeat (5) @(posedge clk);
-            $finish;
-        end
-        // if (mem_itf_i.error != 0) begin
-        //     repeat (5) @(posedge clk);
-        //     $finish;
-        // end
-        // if (mem_itf_d.error != 0) begin
-        //     repeat (5) @(posedge clk);
-        //     $finish;
-        // end
-        if (bmem_itf.error != 0) begin
-            repeat (5) @(posedge clk);
-            $finish;
-        end
         timeout <= timeout - 1;
     end
 
